@@ -8,6 +8,7 @@ import './css/App.css';
 import './css/Led.css';
 
 const TOUCH_BAR_LENGTH = 12;
+const harpKeys = '1234567890ß`';
 
 const KnobType = {
   C_VOLUME: 'chord_volume',
@@ -24,8 +25,11 @@ class App extends Component {
     window.onkeydown = e => this.handleDown(e);
     window.onkeyup = e => this.handleUp(e);
 
+    document.addEventListener('MouseEntered', (e) => this.handleMouseEnter(e));
+    document.addEventListener('MouseMouseLeft', (e) => this.handleMouseLeave(e));
+
     // Needed to initialize the sounds
-    const keys = 'qwertyuioasdfghjklzxcvbnm,.';
+    const keys = 'qwertzuioasdfghjklyxcvbnm,.';
     const chords = ['eb', 'bb', 'f', 'c', 'g', 'd', 'a', 'e', 'b',
       'ebm', 'bbm', 'fm', 'cm', 'gm', 'dm', 'am', 'em', 'bm',
       'eb7', 'bb7', 'f7', 'c7', 'g7', 'd7', 'a7', 'e7', 'b7'];
@@ -133,7 +137,9 @@ class App extends Component {
 
   /* Helper function that determines if a key is a valid touch bar key */
   isValidTouchKey(key) {
-    return (key in _.range(10) || key === '-' || key === '=');
+    //console.log(key);
+    return harpKeys.includes(key);
+    //return (key in _.range(10) || key === '-' || key === '=');
   }
 
   getNewChords(newKey) {
@@ -183,16 +189,18 @@ class App extends Component {
 
   /*** Handler functions ***/
   handleUp(e) {
-    const upPosition = '1234567890-='.split('').indexOf(e.key);
+    var key = e.key;
+    if (e.code === 'Equal') { key = '`'; }
+    const upPosition = harpKeys.split('').indexOf(key);
     const currentPosition = this.state.barSelect.indexOf(1);
     // Last boolean handles case where
     // 1) User plays chord 'g' (WLOG)
     // 2) User, while still playing chord 'g', plays chord 'c'
     // 3) When chord 'c' is played, chord 'g' is stopped. So we don't want to
     //    double stop it here.
-    if (this.isValidChordKey(e.key) && !this.memory && this.getCurrentKey() === e.key) {
+    if (this.isValidChordKey(key) && !this.memory && this.getCurrentKey() === key) {
       this.stopChord();
-    } else if (this.isValidTouchKey(e.key) && upPosition === currentPosition) { // again, second boolean handles double stopping
+    } else if (this.isValidTouchKey(key) && upPosition === currentPosition) { // again, second boolean handles double stopping
       this.setState({
         barSelect: Array(TOUCH_BAR_LENGTH).fill(0),
       });
@@ -203,12 +211,22 @@ class App extends Component {
    * Delegate functionality to handleChord and handleTouch.
    */
   handleDown(e) {
-    if (this.isValidChordKey(e.key)) {
-      this.handleChord(e.key);
-    } else if (this.isValidTouchKey(e.key)) {
-      this.handleTouch(e.key);
+    var key = e.key;
+    if (e.code === 'Equal') {key = '`';}
+    if (this.isValidChordKey(key)) {
+      this.handleChord(key);
+    } else if (this.isValidTouchKey(key)) {
+      this.handleTouch(key);
     }
     // don't do anything if an invalid key was pressed
+  }
+
+  handleMouseEnter(e){
+    this.handleDown({key: harpKeys[e.target.id]});
+  }
+
+  handleMouseLeave(e){
+    this.handleUp({key: harpKeys[e.target.id]});
   }
 
   handleChord(newKey) {
@@ -240,7 +258,7 @@ class App extends Component {
       return;
     }
     // Get new bar position
-    const position = '1234567890-='.split('').indexOf(touchKey);
+    const position = harpKeys.split('').indexOf(touchKey);
     const newBarSelect = Array(TOUCH_BAR_LENGTH).fill(0);
     newBarSelect[position] = 1;
 
@@ -392,7 +410,7 @@ class App extends Component {
             <div id='oLogo'></div>
           </div>
           <div id='barContainer'>
-            <div id='barSpace' className='clearBg'><TouchBar barSelect={this.state.barSelect} /></div>
+            <div id='barSpace'className='clearBg'><TouchBar barSelect={this.state.barSelect}/></div>
             <div className='stopBar clearBg'><button className='stopButton' onClick={() => this.handleStopButton()}></button></div>
           </div>
           <div id='speaker'></div>
